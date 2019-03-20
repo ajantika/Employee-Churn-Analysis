@@ -1,7 +1,7 @@
 # Employee-Churn-Analysis
 
 ## Steps Performed
-1.Loading the necessary Libraries
+### 1.Loading the necessary Libraries
 2.Loading Dataset
 3.Data Exploration
 a. Checking the dependant and independant variales
