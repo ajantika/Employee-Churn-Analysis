@@ -1,0 +1,527 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+# Load packages
+
+library('ggplot2') # visualization
+library('ggthemes') # visualization
+library('scales') # visualization
+library('dplyr') # data manipulation
+library('mice') # imputation
+library('randomForest') # classification algorithm
+
+
+```
+
+```{r}
+dataNW<-read.csv("WA_Fn-UseC_-HR-Employee-Attrition.csv")
+head(dataNW)
+```
+
+
+```{r}
+names(dataNW)[names(dataNW) == 'ï..Age'] <- 'Age'
+
+```
+
+```{r}
+dim(dataNW)
+
+```
+
+```{r}
+names(dataNW)
+
+```
+
+```{r}
+str(data)
+
+```
+
+```{r}
+sapply(dataNW, function(x) sum(is.na(x)))
+
+```
+
+```{r}
+library(DataExplorer)
+plot_str(dataNW)
+```
+
+
+
+```{r}
+plot_missing(dataNW)
+
+```
+
+
+
+
+
+```{r}
+Terminated<-as.factor(dataNW$Attrition)
+summary(Terminated)
+
+perc_attrition_rate<-sum(dataNW$Attrition/length(dataNW$Attrition))*100
+```
+
+
+
+
+```{r}
+prop.table(table(dataNW$Attrition))
+
+```
+
+
+
+```{r}
+Terminated<- ggplot(dataNW, aes(x=Attrition)) + 
+  geom_bar(aes(y=(..count..)/sum(..count..)), alpha=0.8, fill="lightblue", color = "black") +
+  scale_y_continuous(labels = scales::percent) +
+  geom_text(aes(label = scales::percent((..count..)/sum(..count..)),
+                y= (..count..)/sum(..count..) ), stat= "count", vjust = -0.5) +
+  ylab("Percentage") + xlab("Quitting Rate")+ ggtitle("Quitting Percentage")
+Terminated
+```
+
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+#Transforming Termination Column to Factor with True and False values
+dataNW$Attrition<-factor(dataNW$Attrition,labels=c('False',"True"))
+SHdf<-dataNW %>% group_by(EducationField,Attrition) %>% 
+      summarise(count=n())
+
+#replacing NA value with 0
+SHdf[is.na(SHdf)]<-0
+
+#making a data frame of Departments and the count of workers who left or not
+SHdf<-spread(SHdf,Attrition,count)
+
+SHdf<-transform(SHdf,Perleft=(True/(True+False))*100 , PerWork=(False/(True+False))*100)
+SHdf
+```
+
+Percentage of employee who left and Employee who are working based upon Source.Of.Hire
+
+```{r}
+#Plot of Department vs Percentage of Employees who left
+ggplot(aes(x=EducationField, y = Perleft),data = SHdf) + 
+  geom_col(fill='#56B4E9',color='#2f3f52') + 
+  coord_flip()+
+  xlab("EducationField") + 
+  ylab("Percentage of Employees who left") + 
+  labs(title="% of Employee left based upon EducationField")
+```
+
+
+
+
+
+```{r}
+ggplot(dataNW, aes(x = PerformanceRating, y = Attrition)) + geom_bar(stat =
+"identity", fill = 'blue', colour = 'blue') + ggtitle("Performance v/s Employee Leaving") + labs(y = "Leaving Resources", x =
+"Performance Rating")
+```
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+dataNW$Attrition <- as.factor(dataNW$Attrition)
+
+dataNW %>%
+  select(Department,Attrition) %>%
+  group_by(Department, Attrition) %>%
+  summarise(count=n()) %>%
+  mutate(dep_pct = count/sum(count)) %>%
+  ggplot(aes(x=Department, y=dep_pct, fill = Attrition)) + 
+  geom_bar(stat="identity", alpha = 0.7) +
+  geom_text(aes(label = paste0(round(dep_pct*100,0),"%"),
+                y=dep_pct+0.02)) +
+  scale_fill_brewer(palette="Paired")+
+  ylab("Percentage of Employees") + xlab("Department") +
+  ggtitle("Resignation per Department")+theme(axis.text.x=element_text(angle=45,hjust=1)) 
+
+
+
+
+```
+
+
+
+
+```{r}
+hist(dataNW$YearsAtCompany, breaks = 15, col = 'green', main = "Analysis of Years At Company Variable", xlab = "YearsAtCompany")
+
+```
+
+
+
+
+```{r}
+
+dataNW$Attrition <- as.factor(dataNW$Attrition)
+
+dataNW %>%
+  select(JobRole,Attrition) %>%
+  group_by(JobRole, Attrition) %>%
+  summarise(count=n()) %>%
+  mutate(dep_pct = count/sum(count)) %>%
+  ggplot(aes(x=JobRole, y=dep_pct, fill = Attrition)) + 
+  geom_bar(stat="identity", alpha = 0.7) +
+  geom_text(aes(label = paste0(round(dep_pct*100,0),"%"),
+                y=dep_pct+0.02)) +
+  scale_fill_brewer(palette="Paired")+
+  ylab("Percentage of Employees") + xlab("Job Role") +
+  ggtitle("Resignation per Job Role")+theme(axis.text.x=element_text(angle=45,hjust=1)) 
+
+
+```
+
+
+```{r}
+str(dataNW)
+df1<-dataNW
+
+```
+
+
+
+
+
+
+
+```{r}
+plot_correlation(df1, type = 'continuous')
+
+```
+
+
+```{r}
+names(df1)
+```
+
+
+
+```{r}
+library(caTools)
+#Splitting the data
+set.seed(123)
+indices = sample.split(df1$Attrition, SplitRatio = 0.7)
+train = df1[indices,]
+validation = df1[!(indices),]
+
+```
+
+MODEL1
+
+```{r}
+colnames(train)
+```
+
+
+```{r}
+#Build the first model using all variables
+model_1 = glm(Attrition ~ Age +BusinessTravel+DailyRate+Department+DistanceFromHome+Education+EducationField+EnvironmentSatisfaction+Gender+HourlyRate+JobInvolvement+JobLevel+JobRole+JobSatisfaction+MaritalStatus+MonthlyIncome+MonthlyRate+NumCompaniesWorked+OverTime+PercentSalaryHike+PerformanceRating+RelationshipSatisfaction+StandardHours+StockOptionLevel+TotalWorkingYears+TrainingTimesLastYear+WorkLifeBalance+YearsAtCompany+YearsInCurrentRole+YearsSinceLastPromotion+YearsWithCurrManager, data = train, family = "binomial")
+summary(model_1)
+```
+
+
+Using stepAIC for variable selection, which is a iterative process of adding or removing variables, in order to get a subset of variables that gives the best performing model.
+
+```{r}
+library(MASS)
+model_2<- stepAIC(model_1, direction="both")
+```
+
+```{r}
+summary(model_2)
+
+```
+
+
+VIF:
+
+We can use variance inflation factor (vif) to get rid of redundant predictors or the variables that have high multicollinearity between them. Multicollinearity exists when two or more predictor variables are highly related to each other and then it becomes difficult to understand the impact of an independent variable on the dependent variable.
+The Variance Inflation Factor(VIF) is used to measure the multicollinearity between predictor variables in a model. A predictor having a VIF of 5 or less is generally considered safe and it can be assumed that it is not correlated with other predictor variables. Higher the VIF, greater is the correlation of the predictor variable w.r.t other predictor variables. However, Predictors with high VIF may have high p-value(or highly significant), hence, we need to see the significance of the Predictor variable before removing it from our model.
+
+```{r}
+library(car)
+vif(model_2)
+```
+
+
+```{r}
+final_model <- model_2
+
+```
+
+
+
+Accuracy
+
+
+
+
+```{r}
+prob_pred=predict(final_model,type='response', newdata = validation[-2])
+y_pred = ifelse(prob_pred>0.5,"Yes","No")
+
+
+accuracy <- table(y_pred, validation[,"Attrition"])
+accuracy
+
+
+
+
+```
+
+
+```{r}
+sum(diag(accuracy))/sum(accuracy)
+
+```
+
+```{r}
+res=predict(final_model,train, type="response")
+
+```
+
+
+
+
+```{r}
+library(ROCR)
+ROCRPred = prediction(res,train$Attrition)
+ROCRPref<- performance(ROCRPred,"tpr","fpr")
+plot(ROCRPref, colorsize=TRUE,print.cutoffs.at=seq(0.1, by=0.1))
+```
+
+```{r}
+prob_pred1=predict(final_model,type='response', newdata = validation[-2])
+y_pred1 = ifelse(prob_pred1>0.2,"Yes","No")
+
+```
+
+```{r}
+accuracy1 <- table(y_pred1, validation[,"Attrition"])
+accuracy1
+sum(diag(accuracy1))/sum(accuracy1)
+
+```
+
+
+MODEL BUILDING 2
+Decision Tree- Splits the data into multiple sets and each set is further split into subsets to arrive at a tree like structure and make a decision. Homogeneity is the basic concept that helps to determine the attribute on which a split should be made. A split that results into the most homogenous subset is often considered better and step by step each attribute is choosen that maximizes the homogeneity of each subset. Further, this homogeneity is measured using different ways such as Gini Index, Entropy and Information Gain.
+Hide
+
+
+```{r}
+set.seed(123)
+df1$Attrition <- as.factor(df1$Attrition)
+indices = sample.split(df1$Attrition, SplitRatio = 0.7)
+train = df1[indices,]
+validation = df1[!(indices),]
+head(validation)
+```
+
+```{r}
+options(repr.plot.width = 10, repr.plot.height = 8)
+library(rpart)
+library(rpart.plot)
+#Training
+Dtree = rpart(Attrition ~., data = train, method = "class")
+summary(Dtree)
+```
+
+
+```{r}
+#Predicting 
+DTPred <- predict(Dtree,type = "class", newdata = validation[,-2])
+```
+
+```{r}
+library(caret)
+confusionMatrix(validation$Attrition, DTPred)
+
+```
+
+MODEL BUILDING 3:
+RANDOM FOREST- Often known as an ensemble of a large number of Decision Trees, that uses bootstrapped aggregation technique to choose random samples from a dataset to train each tree in the forest. The final prediction in a RandomForest is an aggregation of prediction of individual trees. One of the advantages of RandomForest is that, it gives out-of-bag(OOB) error estimates, which is the mean prediction error on a training sample, using the trees that do not have that training sample in their bootstrap sample. It may act as a cross validation error and eliminate the need of using test/validation data, thereby increasing the training the data. However, I am still going to use train and validation concept here as well, like I did in the above two Models.
+Hide
+
+
+
+```{r}
+library(randomForest)
+set.seed(123)
+df1$Attrition <- as.factor(df1$Attrition)
+indices = sample.split(df1$Attrition, SplitRatio = 0.7)
+train = df1[indices,]
+validation = df1[!(indices),]
+```
+
+
+
+
+```{r}
+#Training the RandomForest Model
+model.rf <- randomForest(Attrition ~ ., data=train, proximity=FALSE,importance = FALSE,
+                        ntree=500,mtry=4, do.trace=FALSE)
+model.rf
+```
+```{r}
+#Predicting on the validation set and checking the Confusion Matrix.
+testPred <- predict(model.rf, newdata=validation[,-2])
+table(testPred, validation$Attrition)
+```
+
+
+
+```{r}
+confusionMatrix(validation$Attrition, testPred)
+
+```
+
+
+Variable Importance Plot:
+Below is the variable importance plot, that shows the most significant attribute in decreasing order by mean decrease in Gini. The Mean decrease Gini measures how pure the nodes are at the end of the tree. Higher the Gini Index, better is the homogeneity.
+Hide
+
+```{r}
+#Checking the variable Importance Plot
+varImpPlot(model.rf)
+```
+
+```{r}
+library(pROC)
+options(repr.plot.width =10, repr.plot.height = 8)
+glm.roc <- roc(response = validation$Attrition, predictor = as.numeric(prob_pred1))
+rf.roc <- roc(response = validation$Attrition, predictor = as.numeric(testPred))
+plot(glm.roc,      legacy.axes = TRUE, print.auc.y = 1.0, print.auc = TRUE)
+
+
+plot(rf.roc, col = "red" , add = TRUE, print.auc.y = 0.85, print.auc = TRUE)
+legend("bottom", c("Random Forest", "Logistic"),
+       lty = c(1,1), lwd = c(2, 2), col = c("red", "black"), cex = 0.75)
+```
+
+
+
+```{r}
+library(ROSE)
+data.rose<-ROSE(Attrition~., data=train,seed=1)$data
+table(data.rose$Attrition)
+```
+
+
+```{r}
+library(rpart)
+tree.rose <- rpart(Attrition ~ ., data = data.rose)
+pred.tree.rose <- predict(tree.rose, newdata = validation)
+roc.curve(validation$Attrition, pred.tree.rose[,2])
+```
+
+
+```{r}
+library(pROC)
+options(repr.plot.width =10, repr.plot.height = 8)
+glm.roc <- roc(response = validation$Attrition, predictor = as.numeric(prob_pred1))
+rf.roc <- roc(response = validation$Attrition, predictor = as.numeric(testPred))
+rose.roc<-roc(response = validation$Attrition, predictor = as.numeric(pred.tree.rose[,2]))
+plot(glm.roc,      legacy.axes = TRUE, print.auc.y = 1.0, print.auc = TRUE)
+
+
+
+plot(rf.roc, col = "red" , add = TRUE, print.auc.y = 0.85, print.auc = TRUE)
+plot(rose.roc, col = "green" , add = TRUE, print.auc.y = 0.95, print.auc = TRUE)
+
+
+
+legend("bottom", c("Random Forest", "Logistic","ROSE"),
+       lty = c(1,1), lwd = c(2, 2), col = c("red", "black","green"), cex = 0.75)
+
+```
+
+So we can see here ROSE(oversampling) on decision tree increases the performance when compared to normal decision tree but still Logistic regression wins the race by best AUC value.
+
+```{r}
+library(survival)
+
+dataNW$YearsAtCompany=as.numeric(dataNW$YearsAtCompany)
+dataNW$Attrition=as.numeric(dataNW$Attrition)
+dataNW$Age=as.numeric(dataNW$Age)
+
+```
+
+
+
+```{r}
+time = dataNW$YearsAtCompany
+event= dataNW$Attrition
+```
+
+
+```{r}
+mySurv<-Surv(time,event)
+class(mySurv)
+head(mySurv,20) # plus sign means censored data- there is no informaton
+
+```
+
+
+
+
+
+
+```{r}
+myfit<-survfit(mySurv~dataNW$OverTime)
+myfit
+
+```
+```{r}
+survdiff(mySurv~dataNW$OverTime)
+
+```
+
+```{r}
+summary(myfit)
+
+```
+
+
+
+
+```{r}
+library(ggplot2)
+require("survival")
+library(survival)
+library(survminer)
+fit1 <- survfit(mySurv ~ dataNW$OverTime)
+summary(fit1)
+ggsurvplot(fit1, data = dataNW, pval = TRUE)
+```
+
+
