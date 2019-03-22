@@ -47,10 +47,15 @@ str(data)
 
 ```
 
+
+Checking the Missing values:
+
 ```{r}
 sapply(dataNW, function(x) sum(is.na(x)))
 
 ```
+
+Data Exploration
 
 ```{r}
 library(DataExplorer)
@@ -59,10 +64,6 @@ plot_str(dataNW)
 
 
 
-```{r}
-plot_missing(dataNW)
-
-```
 
 
 
@@ -94,7 +95,7 @@ Terminated<- ggplot(dataNW, aes(x=Attrition)) +
   ylab("Percentage") + xlab("Quitting Rate")+ ggtitle("Quitting Percentage")
 Terminated
 ```
-
+The Data is Unbalanced, where the minority class is only 16.1%
 
 
 ```{r}
@@ -128,7 +129,7 @@ ggplot(aes(x=EducationField, y = Perleft),data = SHdf) +
   labs(title="% of Employee left based upon EducationField")
 ```
 
-
+Employee with Human Resource degree are leaving more.
 
 
 
@@ -142,7 +143,7 @@ ggplot(dataNW, aes(x = PerformanceRating, y = Attrition)) + geom_bar(stat =
 
 
 
-
+RESIGNATION PER DEPARTMENT:
 
 
 ```{r}
@@ -169,9 +170,13 @@ dataNW %>%
 
 ```
 
+SALES  DEPARTMENT ARE LEAVING MORE
 
 
 
+
+
+CHECKING THE EMPLOYEE TENURE IN THE COMPANY:
 ```{r}
 hist(dataNW$YearsAtCompany, breaks = 15, col = 'green', main = "Analysis of Years At Company Variable", xlab = "YearsAtCompany")
 
@@ -179,6 +184,7 @@ hist(dataNW$YearsAtCompany, breaks = 15, col = 'green', main = "Analysis of Year
 
 
 
+RESIGNATION BASED UPON JOB ROLE
 
 ```{r}
 
@@ -200,6 +206,10 @@ dataNW %>%
 
 ```
 
+SALES REPRESENTATIVE TEND TO LEAVE MORE.
+
+
+
 
 ```{r}
 str(dataNW)
@@ -210,7 +220,7 @@ df1<-dataNW
 
 
 
-
+CORRELATION MATRIX
 
 
 ```{r}
@@ -223,7 +233,7 @@ plot_correlation(df1, type = 'continuous')
 names(df1)
 ```
 
-
+DIVIDING THE DATASET INTO TRAIN AND TEST SET
 
 ```{r}
 library(caTools)
@@ -237,6 +247,7 @@ validation = df1[!(indices),]
 
 MODEL1
 
+LOGISTIC REGRESSION
 ```{r}
 colnames(train)
 ```
@@ -334,7 +345,8 @@ sum(diag(accuracy1))/sum(accuracy1)
 
 
 MODEL BUILDING 2
-Decision Tree- Splits the data into multiple sets and each set is further split into subsets to arrive at a tree like structure and make a decision. Homogeneity is the basic concept that helps to determine the attribute on which a split should be made. A split that results into the most homogenous subset is often considered better and step by step each attribute is choosen that maximizes the homogeneity of each subset. Further, this homogeneity is measured using different ways such as Gini Index, Entropy and Information Gain.
+Decision Tree- 
+Splits the data into multiple sets and each set is further split into subsets to arrive at a tree like structure and make a decision. Homogeneity is the basic concept that helps to determine the attribute on which a split should be made. A split that results into the most homogenous subset is often considered better and step by step each attribute is choosen that maximizes the homogeneity of each subset. Further, this homogeneity is measured using different ways such as Gini Index, Entropy and Information Gain.
 Hide
 
 
@@ -419,13 +431,16 @@ varImpPlot(model.rf)
 library(pROC)
 options(repr.plot.width =10, repr.plot.height = 8)
 glm.roc <- roc(response = validation$Attrition, predictor = as.numeric(prob_pred1))
+DT.roc <- roc(response = validation$Attrition, predictor, predictor = as.numeric(DTPred))
+
 rf.roc <- roc(response = validation$Attrition, predictor = as.numeric(testPred))
 plot(glm.roc,      legacy.axes = TRUE, print.auc.y = 1.0, print.auc = TRUE)
+plot(DT.roc, col = "blue", add = TRUE, print.auc.y = 0.65, print.auc = TRUE)
 
 
 plot(rf.roc, col = "red" , add = TRUE, print.auc.y = 0.85, print.auc = TRUE)
-legend("bottom", c("Random Forest", "Logistic"),
-       lty = c(1,1), lwd = c(2, 2), col = c("red", "black"), cex = 0.75)
+legend("bottom", c("Random Forest", "Decision Tree","Logistic"),
+       lty = c(1,1), lwd = c(2, 2), col = c("red", "blue","black"), cex = 0.75)
 ```
 
 
@@ -452,20 +467,26 @@ glm.roc <- roc(response = validation$Attrition, predictor = as.numeric(prob_pred
 rf.roc <- roc(response = validation$Attrition, predictor = as.numeric(testPred))
 rose.roc<-roc(response = validation$Attrition, predictor = as.numeric(pred.tree.rose[,2]))
 plot(glm.roc,      legacy.axes = TRUE, print.auc.y = 1.0, print.auc = TRUE)
+DT.roc <- roc(response = validation$Attrition, predictor, predictor = as.numeric(DTPred))
 
 
 
 plot(rf.roc, col = "red" , add = TRUE, print.auc.y = 0.85, print.auc = TRUE)
 plot(rose.roc, col = "green" , add = TRUE, print.auc.y = 0.95, print.auc = TRUE)
+plot(DT.roc, col = "blue", add = TRUE, print.auc.y = 0.65, print.auc = TRUE)
 
 
 
-legend("bottom", c("Random Forest", "Logistic","ROSE"),
-       lty = c(1,1), lwd = c(2, 2), col = c("red", "black","green"), cex = 0.75)
+legend("bottom", c("Random Forest","Decison tree" ,"Logistic","ROSE"),
+       lty = c(1,1), lwd = c(2, 2), col = c("red", "blue", "black","green"), cex = 0.75)
 
 ```
 
 So we can see here ROSE(oversampling) on decision tree increases the performance when compared to normal decision tree but still Logistic regression wins the race by best AUC value.
+
+
+
+SURVIVAL PROBABILITY:
 
 ```{r}
 library(survival)
@@ -477,7 +498,7 @@ dataNW$Age=as.numeric(dataNW$Age)
 ```
 
 
-
+Assigning the time and event
 ```{r}
 time = dataNW$YearsAtCompany
 event= dataNW$Attrition
@@ -501,10 +522,18 @@ myfit<-survfit(mySurv~dataNW$OverTime)
 myfit
 
 ```
+Median survival days for employees who does overtime is less(24) than employee who do not.
+
+
+
 ```{r}
 survdiff(mySurv~dataNW$OverTime)
 
 ```
+
+
+
+
 
 ```{r}
 summary(myfit)
@@ -524,4 +553,4 @@ summary(fit1)
 ggsurvplot(fit1, data = dataNW, pval = TRUE)
 ```
 
-
+After 20 days the survival propability rate for employee who does overtime is 55% and employee who do overtime is 80%
