@@ -13,12 +13,6 @@
 ### 5 Applying ML Algorithm
 ### 6.Checking if there is any presence of Multi Colinearity with help of Variance Inflation factor(VIF)
 ### 7.Applying Logistic Regression Algorithm
-### The binary logistic regression requires the dependent variable to be binary and ordinal logistic regression requires the dependent
-### variable to be ordinal.
-### Logistic regression requires the observations to be independent of each other. In other words. the observations should not come
-### from repeated measurements or matched data
-### Logistic regression requires there to be little or no multicollinearity among the independent variables. This means
-### that independent variables should not be too highly correlated with each other.
 ### 8.Applying AIC for variable Selection
 ### 9. Applying Decision Tree
 ### 10.Applying Random Forest
